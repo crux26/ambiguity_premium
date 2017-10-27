@@ -69,3 +69,7 @@ Temporary Items
 
 # HTML files
 *.html
+
+# EXCEL files
+*.xlsx
+*.xls
