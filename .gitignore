@@ -81,3 +81,5 @@ Temporary Items
 *.css
 *.gif
 *.js
+*.prj
+*.mexw64
