@@ -76,3 +76,8 @@ Temporary Items
 
 # CSV files
 *.csv
+
+# MEX-related files
+*.css
+*.gif
+*.js
