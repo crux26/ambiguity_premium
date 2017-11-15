@@ -1,3 +1,5 @@
+%% Sample code - got from the internet.
+
 %% ReplicateVIX
 % Near-Term
 % Strike Call Put
