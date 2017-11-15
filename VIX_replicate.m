@@ -1,25 +1,55 @@
 %% Goal: bid-VIX, ask-VIX construction
-% --> same methodology, different data --> Only one function is enough
 
 %% VIX: near- (1st) and next-term (2nd) call/put options where 23D < TTM < 37D
 % including "standard" 3rd Friday expiration and "weekly" SPX options that expire every Friday,
 % except the 3rd Friday of each month
 
-% near-term: cannot say whether it's SPX or SPXW --> identify with symbol.
-
-% Can choose 1st, 2nd month by 
-% 1) Filter out whose TTM < 23D or > 37D
-% 2) 1st month == min(TTM), 2nd month == max(TTM)
-
 %% "Today": second Tue, Oct <-- assume Oct 8, 2013
 clear;clc;
-addpath('D:\Dropbox\GitHub\ambiguity_premium\data\sample_data');
-load('OpData_BSIV_2nd.mat');
+isDorm = true;
+if isDorm == true
+    drive='F:';
+else
+    drive='D:';
+end
 
+homeDirectory = sprintf('%s\\Dropbox\\GitHub\\ambiguity_premium', drive);
+genData_path = sprintf('%s\\data\\gen_data', homeDirectory);
+
+addpath(sprintf('%s\\main_functions', homeDirectory));
 % r_1st, r_2nd: bond-equivalent yields of the US T-bill maturing closest to the expiration dates of relevant SPX options
-addpath('D:\Dropbox\GitHub\ambiguity_premium\data');
-load('tfz_dly_ts2.mat', 'table_');
+
+OptionsData_genData_path = sprintf('%s\\Dropbox\\GitHub\\OptionsData\\data\\gen_data', drive);
+
+load(sprintf('%s\\raw_tfz_dly_ts2.mat', OptionsData_genData_path), 'table_');
 table_ = sortrows(table_, [2, 7], {'ascend', 'descend'});  % [2, 7]: CALDT, TDDURATN, respectively.
+
+load(sprintf('%s\\OpData_dly_2nd_near30D.mat', genData_path));
+
+%% Delete if isnan(tb_m3)
+% Below takes: 0.29s (LAB PC)
+tic;
+idx_notNaN_C = find(~isnan(CallData(:,13)));
+CallData = CallData(idx_notNaN_C, :);
+% symbol_C = symbol_C(idx_notNaN_C, :);
+% CallBidAsk = CallBidAsk(idx_notNaN_C, :);
+toc;
+
+% Below takes: 0.29s (LAB PC)
+tic;
+idx_notNaN_P = find(~isnan(PutData(:,13)));
+PutData = PutData(idx_notNaN_P, :);
+% symbol_P = symbol_P(idx_notNaN_P, :);
+% PutBidAsk = PutBidAsk(idx_notNaN_P, :);
+toc;
+
+
+%% 30Jun99==730301. CallData.date==730301.exdate=[17Jul99,18Sep99,18Dec99]. PutData.date==730301.exdate=[17Jul99,21Aug99,18Sep99].
+% --> CallData.TTM=[18,80,181]. PutData.TTM=[18,52,80,171]. TTM < 70D
+% (calendar) are discarded. Thus, this is problematic.
+CallData = CallData(CallData(:,1) ~= 730301, :);
+PutData = PutData(PutData(:,1) ~= 730301, :);
+
 %%
 [date_, idx_date_] = unique(CallData(:,1));
 [date__, idx_date__] = unique(PutData(:,1));
@@ -41,6 +71,8 @@ end
 idx_date_ = [idx_date_; length(CallData(:,1))+1]; % to include the last index.
 idx_date__ = [idx_date__; length(PutData(:,1))+1]; % unique() doesn't return the last index.
 
+idx_date_next = idx_date_(2:end)-1; idx_date__next = idx_date__(2:end)-1;
+idx_date_ = idx_date_(1:end-1); idx_date__ = idx_date__(1:end-1);
 %% Classify standard / non-standard options.
 % [idx_exdate_, exdate_] = find(diff(CallData(:,2))~=0);
 % [idx_exdate__, exdate__] = find(diff(PutData(:,2))~=0);
@@ -55,12 +87,19 @@ idx_date__ = [idx_date__; length(PutData(:,1))+1]; % unique() doesn't return the
 % --> This will be catched by "catch" below.
 
 %%
+r_1st = zeros(length(date_), 1);
+r_2nd = zeros(length(date_), 1);
+
 CT = '15:00:00';  % fix the Current Time.
 jj=1;
 for jj=1:length(date_)                   % Note that length(date_)+1==length(ia_date_) now.
     try
-        tmpIdx_C = idx_date_(jj):(idx_date_(jj+1)-1) ;
-        tmpIdx_P = idx_date__(jj):(idx_date__(jj+1)-1) ;
+        tmpIdx_C = idx_date_(jj):idx_date_next(jj) ;
+        tmpIdx_P = idx_date__(jj):idx_date__next(jj) ;
+        
+        % DISCARDING ALL BUT NEAR 30D SHOULD COME HERE, REDEFINING tmpIdx_.
+        % RETURNING ONLY THOSE AND WORKING WITH THEM WOULD BE MORE EFFICIENT.
+
         %--------------
         [Kc_1st, C_1st, Kp_1st, P_1st, DTM_1st, ...
             Kc_2nd, C_2nd, Kp_2nd, P_2nd, DTM_2nd, isSTD_1st, isSTD_2nd, today_] = ...
@@ -72,9 +111,11 @@ for jj=1:length(date_)                   % Note that length(date_)+1==length(ia_
         [TTM_C_2nd, TTM_P_2nd] = deal(TTM4VIX(CT, DTM_2nd, isSTD_2nd));
         
         idx_today = find(today_ == table_.CALDT);
-        r_1st = match_Close2DTM(today_, table_.CALDT(idx_today), DTM_1st, table_.TDDURATN(idx_today), table_.TDYLD(idx_today));
-        r_2nd = match_Close2DTM(today_, table_.CALDT(idx_today), DTM_2nd, table_.TDDURATN(idx_today), table_.TDYLD(idx_today));
-
+        r_1st(jj) = match_Close2DTM(today_, table_.CALDT(idx_today), DTM_1st, table_.TDDURATN(idx_today), table_.TDYLD(idx_today));
+        r_2nd(jj) = match_Close2DTM(today_, table_.CALDT(idx_today), DTM_2nd, table_.TDDURATN(idx_today), table_.TDYLD(idx_today));
+        
+        % MORE SHOULD COME HERE. NOT DONE YET.
+        disp('For breakpoint.');
     catch
         warning('Problem with the function or data. Check again.');
     end
@@ -121,6 +162,5 @@ r_2nd = match_Close2DTM(today_, table_.CALDT(idx_today), DTM_2nd, table_.TDDURAT
 
 % Do the same for the 2nd month
 
-%% 
-
-
+%%
+rmpath(sprintf('%s\\main_functions', homeDirectory));
