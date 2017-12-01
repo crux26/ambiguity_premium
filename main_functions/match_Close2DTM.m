@@ -1,4 +1,7 @@
 function [r] = match_Close2DTM(today_, caldt, DTM, TDDURATN, TDYLD)
+%
+% Matches T-bill whose duration is closest to given option's DTM.
+%
 % today_: scalar.
 % caldt: vector. "table_.CALDT". length(caldt)==today's length of term structure
 idx_today = find(today_ == caldt);
