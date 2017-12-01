@@ -1,6 +1,6 @@
 %% Extract near-/next-term only, the 2 closest to 30D.
 clear;clc;
-isDorm = true;
+isDorm = false;
 if isDorm == true
     drive='F:';
 else
@@ -19,10 +19,38 @@ load(sprintf('%s\\rawOpData_dly_2nd_BSIV.mat', OptionsData_genData_path));
 toc;
 %% size(CallData,2) = 22
 % Below takes 0.41s (DORM PC)
-tic
-CallData = [CallData, CallIV, CallVolDev];
-PutData = [PutData, PutIV, PutVolDev];
-toc
+% tic;
+% CallData = [CallData, CallIV, CallVolDev];
+% PutData = [PutData, PutIV, PutVolDev];
+% toc;
+
+CallData = table(CallData(:,1), CallData(:,2), CallData(:,3), CallData(:,4), CallData(:,5), ...
+    CallData(:,6), CallData(:,7), CallData(:,8), CallData(:,9), CallData(:,10), CallData(:,11), CallData(:,12), ...
+    CallData(:,13), CallData(:,14), CallData(:,15), CallData(:,16), CallData(:,17), CallData(:,18), CallData(:,19), ...
+    CallData(:,20), CallData(:,21), CallData(:,22), ...
+    TTM_C, CallBidAsk(:,1), CallBidAsk(:,2), symbol_C, CallIV, CallVolDev, ...
+    'VariableNames', ...
+    {'date', 'exdate', 'Kc', 'volume', 'open_interest', ...
+    'IV', 'delta', 'gamma', 'vega', 'theta',  'S', 'sprtrn', ...
+    'r', 'q', 'spxset', 'spxset_expiry', 'moneyness', 'C', 'opret', ...
+    'cpflag', 'min_datedif', 'min_datedif_2nd', ...
+    'TTM', 'Bid', 'Ask', 'symbol', 'BSIV', 'BSIV_dev'});
+    
+PutData = table(PutData(:,1), PutData(:,2), PutData(:,3), PutData(:,4), PutData(:,5), ...
+    PutData(:,6), PutData(:,7), PutData(:,8), PutData(:,9), PutData(:,10), PutData(:,11), PutData(:,12), ...
+    PutData(:,13), PutData(:,14), PutData(:,15), PutData(:,16), PutData(:,17), PutData(:,18), PutData(:,19), ...
+    PutData(:,20), PutData(:,21), PutData(:,22), ...
+    TTM_P, PutBidAsk(:,1), PutBidAsk(:,2), symbol_P, PutIV, PutVolDev, ...
+    'VariableNames', ...
+    {'date', 'exdate', 'Kp', 'volume', 'open_interest', ...
+    'IV', 'delta', 'gamma', 'vega', 'theta', 'S', 'sprtrn', ...
+    'r', 'q', 'spxset', 'spxset_expiry', 'moneyness', 'P', 'opret', ...
+    'cpflag', 'min_datedif', 'min_datedif_2nd', ...
+    'TTM', 'Bid', 'Ask', 'symbol', 'BSIV', 'BSIV_dev'});
+
+clear CallBidAsk CallIV CallVolDev symbol_C TTM_C PutBidAsk PutIV PutVolDev symbol_P TTM_P;
+
+
 
 %% 30Jun99==730301. CallData.date==730301.exdate=[17Jul99,18Sep99,18Dec99]. PutData.date==730301.exdate=[17Jul99,21Aug99,18Sep99].
 % --> CallData.TTM=[18,80,181]. PutData.TTM=[18,52,80,171]. TTM < 70D
@@ -33,23 +61,23 @@ toc
 %%
 [date_, idx_date_] = unique(CallData(:,1));
 [date__, idx_date__] = unique(PutData(:,1));
-if date_ ~= date__
+if ~isequal(date_, date__)
     error('#dates(Call) ~= #dates(Put). Check the data.');
 end
 
 %%
-S = CallData(idx_date_, 11);                                     % CallData(:,11): spindx
+S = CallData.S(idx_date_);
 DaysPerYear = 252;
-r = CallData(idx_date_, 13) * DaysPerYear;                       % CallData(:,13): tb_m3, 1D HPR
-q = CallData(idx_date_, 14);                                     % CallData(:,14): annualized dividend
+r = CallData.r(idx_date_) * DaysPerYear;
+q = CallData.q(idx_date_);
 % DTM = daysdif(CallData(ia_date_,1), CallData(ia_date_,2), 13);  % DTM: Days to Maturity
 
 if length(S) ~= length(idx_date_)
     error('Something is wrong. Re-check.');
 end
 
-idx_date_ = [idx_date_; length(CallData(:,1))+1]; % to include the last index.
-idx_date__ = [idx_date__; length(PutData(:,1))+1]; % unique() doesn't return the last index.
+idx_date_ = [idx_date_; size(CallData, 1) + 1]; % to include the last index.
+idx_date__ = [idx_date__; size(PutData, 1) + 1]; % unique() doesn't return the last index.
 
 idx_date_next = idx_date_(2:end)-1;
 idx_date__next = idx_date__(2:end)-1;
@@ -57,39 +85,33 @@ idx_date_ = idx_date_(1:end-1);
 idx_date__ = idx_date__(1:end-1);
 
 %%
-% Below takes 344.5s or 5.7m (DORM PC)
-% --> 361.8s (DORM, MEX)
+
 CallData__ = [];
 PutData__ = [];
-symbol_C__ = [];
-symbol_P__ = [];
-tic
-for jj=1:length(date_)
+
+% Below takes 314.5s or 5.2m (LAB PC. Do not use MEX; it's slower.)
+tic;
+for jj=1:size(date_, 1)
     tmpIdx_C = idx_date_(jj):idx_date_next(jj) ;
     tmpIdx_P = idx_date__(jj):idx_date__next(jj) ;
-    [CallData_, PutData_, symbol_C_, symbol_P_] = ...
-        idNear30D_BSIV(CallData(tmpIdx_C,:), PutData(tmpIdx_P,:), symbol_C(tmpIdx_C, :), symbol_P(tmpIdx_P, :));
+    [CallData_, PutData_] = ...
+        idNear30D_BSIV(CallData(tmpIdx_C,:), PutData(tmpIdx_P,:));
     CallData__ = [CallData__; CallData_];
     PutData__ = [PutData__; PutData_];
-    symbol_C__ = [symbol_C__; symbol_C_];
-    symbol_P__ = [symbol_P__; symbol_P_];
 end
-toc
+toc;
 
-CallData = CallData__(:, 1:22);
-CallIV = CallData__(:, 23);
-CallVolDev = CallData__(:, 24);
-symbol_C = symbol_C__;
+% CallData = CallData__(:, 1:22);
+% CallIV = CallData__(:, 23);
+% CallVolDev = CallData__(:, 24);
 
-PutData = PutData__(:, 1:22);
-PutIV = PutData__(:, 23);
-PutVolDev = PutData__(:, 24);
-symbol_P = symbol_P__;
+% PutData = PutData__(:, 1:22);
+% PutIV = PutData__(:, 23);
+% PutVolDev = PutData__(:, 24);
 
-% Below takes: 8.8s (DORM PC)
+% Below takes: 9.9s (LAB PC)
 tic;
-save(sprintf('%s\\OpData_dly_2nd_BSIV_near30D.mat', gen_data_path), ...
-    'CallData', 'PutData', 'CallIV', 'PutIV', 'CallVolDev', 'PutVolDev', 'symbol_C', 'symbol_P');
+save(sprintf('%s\\OpData_dly_2nd_BSIV_near30D.mat', gen_data_path), 'CallData', 'PutData');
 toc;
 
 rmpath(sprintf('%s\\data\\codes\\functions', homeDirectory));
