@@ -1,5 +1,10 @@
 function [Kp_OTM, P_bid_OTM, P_ask_OTM] = DelConsecZeroBid_put(Kp, P_bid, P_ask, K0)
-idx_OTMP = find(Kp < K0);
+% K0: First Kp below F. Can be empty. If so, find() returns an error.
+if ~isempty(K0)
+    idx_OTMP = find(Kp < K0);
+else
+    idx_OTMP=[];
+end
 Kp_OTM = Kp(idx_OTMP);
 P_bid_OTM = P_bid(idx_OTMP);
 P_ask_OTM = P_ask(idx_OTMP);
