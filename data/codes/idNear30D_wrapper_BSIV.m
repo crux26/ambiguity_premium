@@ -7,7 +7,7 @@ else
     drive='D:';
 end
 homeDirectory = sprintf('%s\\Dropbox\\GitHub\\ambiguity_premium', drive);
-gen_data_path = sprintf('%s\\data\\gen_data', homeDirectory);
+genData_path = sprintf('%s\\data\\gen_data', homeDirectory);
 
 addpath(sprintf('%s\\data\\codes\\functions', homeDirectory));
 
@@ -17,13 +17,8 @@ OptionsData_genData_path = sprintf('%s\\Dropbox\\GitHub\\OptionsData\\data\\gen_
 tic;
 load(sprintf('%s\\rawOpData_dly_2nd_BSIV.mat', OptionsData_genData_path));
 toc;
-%% size(CallData,2) = 22
-% Below takes 0.41s (DORM PC)
-% tic;
-% CallData = [CallData, CallIV, CallVolDev];
-% PutData = [PutData, PutIV, PutVolDev];
-% toc;
 
+%% 
 CallData = table(CallData(:,1), CallData(:,2), CallData(:,3), CallData(:,4), CallData(:,5), ...
     CallData(:,6), CallData(:,7), CallData(:,8), CallData(:,9), CallData(:,10), CallData(:,11), CallData(:,12), ...
     CallData(:,13), CallData(:,14), CallData(:,15), CallData(:,16), CallData(:,17), CallData(:,18), CallData(:,19), ...
@@ -50,14 +45,6 @@ PutData = table(PutData(:,1), PutData(:,2), PutData(:,3), PutData(:,4), PutData(
 
 clear CallBidAsk CallIV CallVolDev symbol_C TTM_C PutBidAsk PutIV PutVolDev symbol_P TTM_P;
 
-
-
-%% 30Jun99==730301. CallData.date==730301.exdate=[17Jul99,18Sep99,18Dec99]. PutData.date==730301.exdate=[17Jul99,21Aug99,18Sep99].
-% --> CallData.TTM=[18,80,181]. PutData.TTM=[18,52,80,171]. TTM < 70D
-% (calendar) are discarded. Thus, this is problematic.
-% CallData = CallData(CallData(:,1) ~= 730301, :);
-% PutData = PutData(PutData(:,1) ~= 730301, :);
-
 %%
 [date_, idx_date_] = unique(CallData(:,1));
 [date__, idx_date__] = unique(PutData(:,1));
@@ -70,7 +57,6 @@ S = CallData.S(idx_date_);
 DaysPerYear = 252;
 r = CallData.r(idx_date_) * DaysPerYear;
 q = CallData.q(idx_date_);
-% DTM = daysdif(CallData(ia_date_,1), CallData(ia_date_,2), 13);  % DTM: Days to Maturity
 
 if length(S) ~= length(idx_date_)
     error('Something is wrong. Re-check.');
@@ -101,17 +87,12 @@ for jj=1:size(date_, 1)
 end
 toc;
 
-% CallData = CallData__(:, 1:22);
-% CallIV = CallData__(:, 23);
-% CallVolDev = CallData__(:, 24);
-
-% PutData = PutData__(:, 1:22);
-% PutIV = PutData__(:, 23);
-% PutVolDev = PutData__(:, 24);
+CallData = CallData__;
+PutData = PutData__;
 
 % Below takes: 9.9s (LAB PC)
 tic;
-save(sprintf('%s\\OpData_dly_2nd_BSIV_near30D.mat', gen_data_path), 'CallData', 'PutData');
+save(sprintf('%s\\OpData_dly_2nd_BSIV_near30D.mat', genData_path), 'CallData', 'PutData');
 toc;
 
 rmpath(sprintf('%s\\data\\codes\\functions', homeDirectory));
