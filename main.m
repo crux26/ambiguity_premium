@@ -1,3 +1,4 @@
+%% main(), main_bid(), main_ask() --> main2()
 %% Goal: bid-VIX, ask-VIX construction
 %% VIX: near- (1st) and next-term (2nd) call/put options where 23D < TTM < 37D
 % including "standard" 3rd Friday expiration and "weekly" SPX options that expire every Friday,
