@@ -1,4 +1,28 @@
 %% main(), main_bid(), main_ask() --> main2()
+clear;clc;
+isDorm = false;
+if isDorm == true
+    drive='F:';
+else
+    drive='D:';
+end
+
+homeDirectory = sprintf('%s\\Dropbox\\GitHub\\ambiguity_premium', drive);
+genData_path = sprintf('%s\\data\\gen_data', homeDirectory);
+
+addpath(sprintf('%s\\main_functions', homeDirectory));
+
+OptionsData_genData_path = sprintf('%s\\Dropbox\\GitHub\\OptionsData\\data\\gen_data', drive);
+
+load(sprintf('%s\\raw_tfz_dly_ts2.mat', OptionsData_genData_path), 'table_');
+T_tfz_dly_ts2 = table_;
+T_tfz_dly_ts2 = sortrows(T_tfz_dly_ts2, [2, 7], {'ascend', 'descend'});  % [2, 7]: CALDT, TDDURATN, respectively.
+
+load(sprintf('%s\\OpData_dly_2nd_BSIV_near30D_Trim.mat', genData_path));
+
+
+
+%%
 load('VIX_gen'); VIX_mid = VIX.VIX * 0.01;
 load('VIX_bid_gen'); VIX_bid = VIX.VIX * 0.01;
 load('VIX_ask_gen'); VIX_ask = VIX.VIX * 0.01;

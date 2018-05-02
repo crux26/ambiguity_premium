@@ -137,7 +137,7 @@ for jj=1:length(date_)  % Note that length(date_)+1==length(ia_date_) now.
 end
 toc;
 
-save('tmp_result.mat');
+save(sprintf('%s\\tmp_result.mat', genData_path));
 
 %%
 
@@ -194,7 +194,7 @@ toc;
 
 VIX = VIX_30Davg(CT, VarIX_1st, VarIX_2nd);
 
-save('VIX_gen', 'VarIX_1st', 'VarIX_2nd', 'VIX');
+save(sprintf('%s\\VIX_gen', genData_path), 'VarIX_1st', 'VarIX_2nd', 'VIX');
 
 %%
 rmpath(sprintf('%s\\main_functions', homeDirectory));

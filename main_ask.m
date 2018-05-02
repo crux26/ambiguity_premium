@@ -197,7 +197,7 @@ toc;
 
 VIX = VIX_30Davg(CT, VarIX_1st, VarIX_2nd);
 
-save('VIX_ask_gen', 'VarIX_1st', 'VarIX_2nd', 'VIX');
+save(sprintf('%s\\VIX_ask_gen', genData_path), 'VarIX_1st', 'VarIX_2nd', 'VIX');
 
 %%
 rmpath(sprintf('%s\\main_functions', homeDirectory));
