@@ -10,7 +10,6 @@ homeDirectory = sprintf('%s\\Dropbox\\GitHub\\ambiguity_premium', drive);
 genData_path = sprintf('%s\\data\\gen_data', homeDirectory);
 
 addpath(sprintf('%s\\data\\codes\\functions', homeDirectory));
-
 OptionsData_genData_path = sprintf('%s\\Dropbox\\GitHub\\OptionsData\\data\\gen_data', drive);
 
 % Below takes: 2.4s (LAB PC)
