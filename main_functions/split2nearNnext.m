@@ -6,7 +6,7 @@ function [T_CallData_1st, T_CallData_2nd, T_PutData_1st, T_PutData_2nd, today_] 
 
 % Length can only be either 1 or 2.
 tmp_Expiries_C = unique( T_CallData.exdate );  % length()<=2 : Guaranteed by idNear30D_wrapper().
-if length(tmp_Expiries_C) == 1
+if length(tmp_Expiries_C) == 1 % if only first expiry exists, duplicate it to the second expiry.
     tmp_Expiries_C = ones(2,1) * tmp_Expiries_C; % To prevent error in DTM_2nd.
 elseif length(tmp_Expiries_C) > 3
     error('tmp_Expiries_C.length() > 3.');
@@ -32,6 +32,7 @@ if ~isequal(length(tmp_Expiries_C), length(tmp_Expiries_P)) % length can be 1 or
     error('length(tmp_Expiries_C) ~= length(tmp_Expiries_P)');
 end
     
+% Call
 Kc_1st = T_CallData.Kc(tmpIdx_C_1st);
 Kc_2nd = T_CallData.Kc(tmpIdx_C_2nd);
 
@@ -47,6 +48,7 @@ C_2nd_ask = T_CallData.Ask(tmpIdx_C_2nd);
 
 TTM_C_2nd = yearfrac(T_CallData.date(tmpIdx_C_2nd), T_CallData.exdate(tmpIdx_C_2nd), 13);
 
+% Put
 Kp_1st = T_PutData.Kp(tmpIdx_P_1st);
 Kp_2nd = T_PutData.Kp(tmpIdx_P_2nd);
 
@@ -62,6 +64,7 @@ P_2nd_ask = T_PutData.Ask(tmpIdx_P_2nd);
 
 TTM_P_2nd = yearfrac(T_PutData.date(tmpIdx_P_2nd), T_PutData.exdate(tmpIdx_P_2nd), 13);
 
+%
 today_ = unique(T_CallData.date);
 today__ = unique(T_PutData.date);
 
@@ -74,8 +77,8 @@ if today_ ~= today__
 end
 %%
 [Year_1st, Month_1st] = datevec(tmp_Expiries_C(1));
-is3rdFri_1st = nweekdate(3,6,Year_1st, Month_1st);
-is3rdFriPlus1_1st = nweekdate(3,6,Year_1st, Month_1st)+1;   % 3rd occurrence of 6th day (Fri).
+is3rdFri_1st = nweekdate(3, 6, Year_1st, Month_1st);  % 3rd occurrence of 6th day (Fri).
+is3rdFriPlus1_1st = nweekdate(3, 6, Year_1st, Month_1st)+1;
 if tmp_Expiries_C(1)==is3rdFri_1st || tmp_Expiries_C(1)==is3rdFriPlus1_1st
     isSTD_1st = 1;
 else
@@ -83,8 +86,8 @@ else
 end
 
 [Year_2nd, Month_2nd] = datevec(tmp_Expiries_C(2));
-is3rdFri_2nd = nweekdate(3,6,Year_2nd, Month_2nd);
-is3rdFriPlus1_2nd = nweekdate(3,6,Year_2nd, Month_2nd)+1;   % 3rd occurrence of 6th day (Fri).
+is3rdFri_2nd = nweekdate(3, 6, Year_2nd, Month_2nd);  % 3rd occurrence of 6th day (Fri).
+is3rdFriPlus1_2nd = nweekdate(3, 6, Year_2nd, Month_2nd)+1;
 if tmp_Expiries_C(2)==is3rdFri_2nd || tmp_Expiries_C(2)==is3rdFriPlus1_2nd
     isSTD_2nd = 1;
 else
