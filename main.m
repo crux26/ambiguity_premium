@@ -1,8 +1,10 @@
-%% main(), main_bid(), main_ask() --> main2()
+%% main(), main_bid(), main_ask() --> main2() --> Goto SAS.
 %% Goal: bid-VIX, ask-VIX construction
 %% VIX: near- (1st) and next-term (2nd) call/put options where 23D < TTM < 37D
 % including "standard" 3rd Friday expiration and "weekly" SPX options that expire every Friday,
 % except the 3rd Friday of each month
+
+%% shorter TTM has more moneynesses: reason why size(T.CallData_1st, 1) > size(T.CallData_2nd, 1)
 
 %% "Today": second Tue, Oct <-- assume Oct 8, 2013
 clear;clc;
@@ -50,6 +52,8 @@ idx_P = ismember([PutData.date, PutData.exdate], date_intersect, 'rows');
 PutData = PutData(idx_P, :);
 
 %% Use only the intersection of CallData & PutData & tfz_dly_ts2.
+% This removes some entries of T_CallData, T_PutData. 
+% --> Reason why size(OpData_dly_2nd_BSIV_near30D_Trim, 1) ~= size(tmp_result, 1)
 [date_, ~] = unique(CallData.date);
 [date__, ~] = unique(PutData.date);
 [date___, ~] = unique(T_tfz_dly_ts2.CALDT);
@@ -137,7 +141,7 @@ for jj=1:length(date_)  % Note that length(date_)+1==length(ia_date_) now.
 end
 toc;
 
-save(sprintf('%s\\tmp_result.mat', genData_path));
+save(sprintf('%s\\rawData_VIX.mat', genData_path));
 
 %%
 
@@ -187,7 +191,6 @@ for jj=1:length(date_)
         fprintf('%2f-th row is problematic', jj);
         warning('Problem with the function or data. Check again.');
         break;
-
     end
 end
 toc;
