@@ -25,4 +25,3 @@ M_OtherDays = (DTM_CAL - 1) * 1440;
 %% TTM: same for call, put
 % 525600: The numberof minutes in a year (60*24*365)
 TTM = (M_CurrentDay + M_SettlementDay + M_OtherDays)/525600;
-

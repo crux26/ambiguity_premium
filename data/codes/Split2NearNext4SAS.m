@@ -1,9 +1,5 @@
-%% Goal: bid-VIX, ask-VIX construction
-%% VIX: near- (1st) and next-term (2nd) call/put options where 23D < TTM < 37D
-% including "standard" 3rd Friday expiration and "weekly" SPX options that expire every Friday,
-% except the 3rd Friday of each month
+%% Split2NearNext(): for SAS process
 
-%% "Today": second Tue, Oct <-- assume Oct 8, 2013
 clear;clc;
 isDorm = false;
 if isDorm == true
@@ -27,10 +23,6 @@ T_tfz_dly_ts2 = sortrows(T_tfz_dly_ts2, [2, 7], {'ascend', 'descend'});  % [2, 7
 % load(sprintf('%s\\OpData_dly_2nd_BSIV_near30D_Trim.mat', genData_path));
 load(sprintf('%s\\OpData_dly_2nd_BSIV_near30D.mat', genData_path));
 
-%% To obtain VIX_bid, replacing VIX (VIX_mid).
-CallData.Ask = CallData.Bid;
-PutData.Ask = PutData.Bid;
-
 %% Delete if isnan(tb_m3)
 % Below takes: 0.29s (LAB PC)
 tic;
@@ -44,20 +36,6 @@ idx_notNaN_P = find(~isnan(PutData.r));
 PutData = PutData(idx_notNaN_P, :);
 toc;
 
-
-%% problematic dates: 733360 -> 733600
-date_mid = [729202, 729953, 730758, 730926, 731171, 731444, 731598, 732053, 732235, 733276, 733367, 733549];
-date_ask = [729453, 729998, 730758, 731171, 735945];
-date_bid = [729202, 730758, 731171, 733600];
-date_problematic = union(union(date_mid, date_ask), date_bid);
-
-idx_date_C = ismember(CallData.date, date_problematic);
-CallData = CallData(~idx_date_C, :);
-idx_date_P = ismember(PutData.date, date_problematic);
-PutData = PutData(~idx_date_P, :);
-
-clear date_mid date_ask date_bid date_problematic;
-
 %% Use only the intersection of CallData & PutData.
 [date_, ~] = unique([CallData.date, CallData.exdate], 'rows');
 [date__, ~] = unique([PutData.date, PutData.exdate], 'rows');
@@ -69,6 +47,8 @@ idx_P = ismember([PutData.date, PutData.exdate], date_intersect, 'rows');
 PutData = PutData(idx_P, :);
 
 %% Use only the intersection of CallData & PutData & tfz_dly_ts2.
+% This removes some entries of T_CallData, T_PutData. 
+% --> Reason why size(OpData_dly_2nd_BSIV_near30D_Trim, 1) ~= size(tmp_result, 1)
 [date_, ~] = unique(CallData.date);
 [date__, ~] = unique(PutData.date);
 [date___, ~] = unique(T_tfz_dly_ts2.CALDT);
@@ -102,7 +82,7 @@ idx_date__ = [idx_date__; size(PutData, 1)+1]; % unique() doesn't return the las
 idx_date_next = idx_date_(2:end)-1; idx_date__next = idx_date__(2:end)-1;
 idx_date_ = idx_date_(1:end-1); idx_date__ = idx_date__(1:end-1);
 
-%% 635-th row is problematic
+%%
 r_1st = zeros(length(date_), 1);
 r_2nd = zeros(length(date_), 1);
 
@@ -111,8 +91,6 @@ PutData_1st = [];
 CallData_2nd = [];
 PutData_2nd = [];
 idx_problematic_1 = [];
-
-CT = '15:00:00';  % fix the Current Time.
 
 % Below takes: 7m (DORM)
 tic;
@@ -124,10 +102,11 @@ for jj=1:length(date_)  % Note that length(date_)+1==length(ia_date_) now.
         [CallData_1st_, CallData_2nd_, PutData_1st_, PutData_2nd_, today_] = ...
             split2nearNnext(CallData(tmpIdx_C, :), PutData(tmpIdx_P, :));
 
-        [TTM_C_1st, TTM_P_1st] = deal(TTM4VIX(CT,  ...
-            unique(CallData_1st_.exdate - CallData_1st_.date), unique(CallData_1st_.isSTD)));
-        [TTM_C_2nd, TTM_P_2nd] = deal(TTM4VIX(CT, ...
-            unique(CallData_2nd_.exdate - CallData_2nd_.date), unique(CallData_2nd_.isSTD)));
+        TTM_C_1st = yearfrac(unique(CallData_1st_.date), unique(CallData_1st_.exdate));
+        TTM_P_1st = yearfrac(unique(PutData_1st_.date), unique(PutData_1st_.exdate));
+        
+        TTM_C_2nd = yearfrac(unique(CallData_2nd_.date), unique(CallData_2nd_.exdate));
+        TTM_P_2nd = yearfrac(unique(PutData_2nd_.date), unique(PutData_2nd_.exdate));
         
         CallData_1st_.TTM = TTM_C_1st*ones(size(CallData_1st_,1), 1); PutData_1st_.TTM = TTM_P_1st*ones(size(PutData_1st_,1), 1);
         CallData_2nd_.TTM = TTM_C_2nd*ones(size(CallData_2nd_,1), 1); PutData_2nd_.TTM = TTM_P_2nd*ones(size(PutData_2nd_,1), 1);
@@ -158,66 +137,60 @@ for jj=1:length(date_)  % Note that length(date_)+1==length(ia_date_) now.
 end
 toc;
 
-save(sprintf('%s\\rawData_VIX_bid.mat', genData_path));
+%% instead of ismem_Call_2nd, ~ismem_Call_1st may be used.
+% Using ismem_Call_2nd, 30D is replicated into both _1st and _2nd.
+date_Call_1st = unique([CallData_1st.date, CallData_1st.exdate], 'rows');
+ismem_Call_1st = ismember([CallData.date, CallData.exdate], date_Call_1st, 'rows');
+Call_1st = CallData(ismem_Call_1st, :);
 
+date_Put_1st = unique([PutData_1st.date, PutData_1st.exdate], 'rows');
+ismem_Put_1st = ismember([PutData.date, PutData.exdate], date_Put_1st, 'rows');
+Put_1st = PutData(ismem_Put_1st, :);
 
-%%
+date_Call_2nd = unique([CallData_2nd.date, CallData_2nd.exdate], 'rows');
+ismem_Call_2nd = ismember([CallData.date, CallData.exdate], date_Call_2nd, 'rows');
+Call_2nd = CallData(ismem_Call_2nd, :);
 
-[date_1st_, idx_date_1st_] = unique(CallData_1st.date);
-[date_1st__, idx_date_1st__] = unique(PutData_1st.date);
-
-idx_date_1st_ = [idx_date_1st_; size(CallData_1st, 1)+1]; % to include the last index.
-idx_date_1st__ = [idx_date_1st__; size(PutData_1st, 1)+1]; % unique() doesn't return the last index.
-
-idx_date_1st_next = idx_date_1st_(2:end)-1; idx_date_1st__next = idx_date_1st__(2:end)-1;
-idx_date_1st_ = idx_date_1st_(1:end-1); idx_date_1st__ = idx_date_1st__(1:end-1);
-
-%
-[date_2nd_, idx_date_2nd_] = unique(CallData_2nd.date);
-[date_2nd__, idx_date_2nd__] = unique(PutData_2nd.date);
-
-idx_date_2nd_ = [idx_date_2nd_; size(CallData_2nd, 1)+1]; % to include the last index.
-idx_date_2nd__ = [idx_date_2nd__; size(PutData_2nd, 1)+1]; % unique() doesn't return the last index.
-
-idx_date_2nd_next = idx_date_2nd_(2:end)-1; idx_date_2nd__next = idx_date_2nd__(2:end)-1;
-idx_date_2nd_ = idx_date_2nd_(1:end-1); idx_date_2nd__ = idx_date_2nd__(1:end-1);
-
-%% idx_problematic_2: [1185, 1459]
-VarIX_1st = []; VarIX_2nd = [];
-idx_problematic_2 = [];
-
-% Below takes: 23.7s (LAB PC)
-tic;
-for jj=1:length(date_)
-    try
-        tmpIdx_C_1st = idx_date_1st_(jj):idx_date_1st_next(jj);
-        tmpIdx_P_1st = idx_date_1st__(jj):idx_date_1st__next(jj);
-        
-        [T_1st_] = VIXrawVolCurve(PutData_1st(tmpIdx_P_1st, :), CallData_1st(tmpIdx_C_1st, :));
-
-        VarIX_1st_ = VIXConstruction(T_1st_);
-        VarIX_1st = [VarIX_1st; VarIX_1st_];
-        
-        tmpIdx_C_2nd = idx_date_2nd_(jj):idx_date_2nd_next(jj);
-        tmpIdx_P_2nd = idx_date_2nd__(jj):idx_date_2nd__next(jj);
-        
-        [T_2nd_] = VIXrawVolCurve(PutData_2nd(tmpIdx_P_2nd, :), CallData_2nd(tmpIdx_C_2nd, :));
-        
-        VarIX_2nd_ = VIXConstruction(T_2nd_);
-        VarIX_2nd = [VarIX_2nd; VarIX_2nd_];
-
-    catch
-%         fprintf('2nd loop: %2f-th row is problematic', jj);
-%         warning('Problem with the function or data. Check again.');
-%         break;
-        idx_problematic_2 = [idx_problematic_2; jj];
-    end
-end
-toc;
-
-VIX = VIX_30Davg(CT, VarIX_1st, VarIX_2nd);
-
-save(sprintf('%s\\VIX_bid_gen', genData_path), 'VarIX_1st', 'VarIX_2nd', 'VIX');
+date_Put_2nd = unique([PutData_2nd.date, PutData_2nd.exdate], 'rows');
+ismem_Put_2nd = ismember([PutData.date, PutData.exdate], date_Put_2nd, 'rows');
+Put_2nd = PutData(ismem_Put_2nd, :);
 
 %%
-rmpath(sprintf('%s\\main_functions', homeDirectory));
+clear CallData_1st PutData_1st CallData_2nd PutData_2nd;
+CallData_1st = Call_1st; PutData_1st = Put_1st;
+CallData_2nd = Call_2nd; PutData_2nd = Put_2nd;
+
+clear Call_1st Put_1st Call_2nd Put_2nd;
+
+%% writetable() for SAS process
+CallData_1st.date = datestr(CallData_1st.date); CallData_1st.exdate = datestr(CallData_1st.exdate);
+PutData_1st.date = datestr(PutData_1st.date); PutData_1st.exdate = datestr(PutData_1st.exdate);
+writetable(CallData_1st, sprintf('%s\\CallData_1st_Full.csv', genData_path));
+writetable(PutData_1st, sprintf('%s\\PutData_1st_Full.csv', genData_path));
+
+CallData_2nd.date = datestr(CallData_2nd.date); CallData_2nd.exdate = datestr(CallData_2nd.exdate);
+PutData_2nd.date = datestr(PutData_2nd.date); PutData_2nd.exdate = datestr(PutData_2nd.exdate);
+writetable(CallData_2nd, sprintf('%s\\CallData_2nd_Full.csv', genData_path));
+writetable(PutData_2nd, sprintf('%s\\PutData_2nd_Full.csv', genData_path));
+
+idx_OTMC_1st = CallData_1st.moneyness < 1;
+CallData_1st_OTM = CallData_1st(idx_OTMC_1st, :);
+
+idx_OTMP_1st = PutData_1st.moneyness > 1;
+PutData_1st_OTM = PutData_1st(idx_OTMP_1st, :);
+
+idx_OTMC_2nd = CallData_2nd.moneyness < 1;
+CallData_2nd_OTM = CallData_2nd(idx_OTMC_2nd, :);
+
+idx_OTMP_2nd = PutData_2nd.moneyness > 1;
+PutData_2nd_OTM = PutData_2nd(idx_OTMP_2nd, :);
+
+CallData_1st_OTM.date = datestr(CallData_1st_OTM.date); CallData_1st_OTM.exdate = datestr(CallData_1st_OTM.exdate);
+PutData_1st_OTM.date = datestr(PutData_1st_OTM.date); PutData_1st_OTM.exdate = datestr(PutData_1st_OTM.exdate);
+writetable(CallData_1st_OTM, sprintf('%s\\CallData_1st_OTM.csv', genData_path));
+writetable(PutData_1st_OTM, sprintf('%s\\PutData_1st_OTM.csv', genData_path));
+
+CallData_2nd_OTM.date = datestr(CallData_2nd_OTM.date); CallData_2nd_OTM.exdate = datestr(CallData_2nd_OTM.exdate);
+PutData_2nd_OTM.date = datestr(PutData_2nd_OTM.date); PutData_2nd_OTM.exdate = datestr(PutData_2nd_OTM.exdate);
+writetable(CallData_2nd_OTM, sprintf('%s\\CallData_2nd_OTM.csv', genData_path));
+writetable(PutData_2nd_OTM, sprintf('%s\\PutData_2nd_OTM.csv', genData_path));

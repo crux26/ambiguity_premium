@@ -14,15 +14,18 @@ DTM_P = T_PutData.exdate - T_PutData.date;
 
 idxC_unique = find(vC_unique == DTM_C(idx_near30D_C)); % min_near30D_C ~= DTM_C(idx_near30D_C)
 idxP_unique = find(vP_unique == DTM_P(idx_near30D_P));
-%%
+%% See VIX old paper; discard DTM < 7D_Cal. Then, for instance, get 33D, 63D.
 % Reason for try-catch: on j==50, DTM=[2;37;65], j==51, DTM=[36;64] --> error on j==51.
 % try-catch removed: not supported in MEX.
 if DTM_C(idx_near30D_C) == 30
     T_CallData_ = T_CallData(DTM_C == DTM_C(idx_near30D_C), :);
-elseif DTM_C(idx_near30D_C) - 30 > 0
-    if length(vC_unique)>=2 && any(DTM_C < 30)
+elseif DTM_C(idx_near30D_C) - 30 > 0 % there exists at least one > 30D
+    if length(vC_unique)>=2 && any(DTM_C < 30) % one < 30D, one > 30D
         tmpExpiry_C = [vC_unique(idxC_unique-1); vC_unique(idxC_unique)];
         T_CallData_ = [T_CallData(DTM_C == tmpExpiry_C(1), :); T_CallData(DTM_C == tmpExpiry_C(2), :)];
+    elseif length(vC_unique)>=2 && min(vC_unique) > 30 % Choose minimum 2 (among > 30D)
+        tmpExpiry_C = vC_unique(1:2);
+        T_CallData_ = T_CallData(ismember(DTM_C, tmpExpiry_C), :);
     else
         T_CallData_ = T_CallData(DTM_C == DTM_C(idx_near30D_C), :);
     end
@@ -37,10 +40,13 @@ end
 
 if DTM_P(idx_near30D_P) == 30
     T_PutData_ = T_PutData(DTM_P == DTM_P(idx_near30D_P), :);
-elseif DTM_P(idx_near30D_P) - 30 > 0
-    if length(vP_unique) >= 2 && any(DTM_P < 30)
+elseif DTM_P(idx_near30D_P) - 30 > 0 % there exists at least one > 30D
+    if length(vP_unique) >= 2 && any(DTM_P < 30) % one < 30D, one > 30D
         tmpExpiry_P = [vP_unique(idxP_unique-1); vP_unique(idxP_unique)];
         T_PutData_ = [T_PutData(DTM_P == tmpExpiry_P(1), :); T_PutData(DTM_P == tmpExpiry_P(2), :)];
+    elseif length(vP_unique)>=2 && min(vP_unique) > 30 % Choose minimum 2 (among > 30D)
+        tmpExpiry_P = vP_unique(1:2);
+        T_PutData_ = T_PutData(ismember(DTM_P, tmpExpiry_P), :);
     else
         T_PutData_ = T_PutData(DTM_P == DTM_P(idx_near30D_P), :);
     end

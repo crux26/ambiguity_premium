@@ -1,10 +1,11 @@
 %% Extract near-/next-term only, the 2 closest to 30D.
+%% Result is missing the first 2 weeks every month.
 clear;clc;
 isDorm = false;
 if isDorm == true
-    drive='F:';
+    drive='E:';
 else
-    drive='D:';
+    drive='E:';
 end
 homeDirectory = sprintf('%s\\Dropbox\\GitHub\\ambiguity_premium', drive);
 genData_path = sprintf('%s\\data\\gen_data', homeDirectory);
@@ -12,16 +13,24 @@ genData_path = sprintf('%s\\data\\gen_data', homeDirectory);
 addpath(sprintf('%s\\data\\codes\\functions', homeDirectory));
 OptionsData_genData_path = sprintf('%s\\Dropbox\\GitHub\\OptionsData\\data\\gen_data', drive);
 
-% Below takes: 2.4s (LAB PC)
+% Below takes: 4.0s (DORM)
 tic;
 load(sprintf('%s\\rawOpData_dly_2nd_BSIV_Trim.mat', OptionsData_genData_path));
 toc;
 
+%% VIX old white paper: discard DTM_CAL < 7D
+DTM_C = daysdif(CallData.date, CallData.exdate);
+DTM_P = daysdif(PutData.date, PutData.exdate);
+CallData = CallData(DTM_C >= 7, :);
+PutData = PutData(DTM_P >= 7, :);
+
 %% Choose DTM b/w [23D, 37D] (Calendar day diff.).
-DTM_C = CallData.exdate - CallData.date; 
-DTM_P = PutData.exdate - PutData.date;
-CallData = CallData((DTM_C >= 23 & DTM_C <= 37), :);
-PutData = PutData((DTM_P >= 23 & DTM_P <= 37), :);
+% DTM_C = CallData.exdate - CallData.date; 
+% DTM_P = PutData.exdate - PutData.date;
+% CallData = CallData((DTM_C >= 23 & DTM_C <= 37), :);
+% PutData = PutData((DTM_P >= 23 & DTM_P <= 37), :);
+
+% Above removes more than needed. It's okay to have TTM_1st = 10D, TTM_2nd=40D, which are removed above.
 
 %% Choose only intersection of (date, exdate) pair of CallData, PutData.
 [date_, ~] = unique([CallData.date, CallData.exdate], 'rows');
@@ -63,7 +72,7 @@ idx_date__ = idx_date__(1:end-1);
 CallData__ = [];
 PutData__ = [];
 
-% Below takes 80.8s (LAB PC. Do not use MEX; it's slower.)
+% Below takes 10m (DORM. Do not use MEX; it's slower.)
 tic;
 for jj=1:size(date_, 1)
     tmpIdx_C = idx_date_(jj):idx_date_next(jj) ;
@@ -78,7 +87,7 @@ toc;
 CallData = CallData__;
 PutData = PutData__;
 
-% Below takes: 1.8s (LAB PC)
+% Below takes: 4.1s (DORM)
 tic;
 save(sprintf('%s\\OpData_dly_2nd_BSIV_near30D_Trim.mat', genData_path), 'CallData', 'PutData');
 toc;

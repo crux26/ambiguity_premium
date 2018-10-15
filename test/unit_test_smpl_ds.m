@@ -1,6 +1,7 @@
-%% main_smpl_ds
+%% main_smpl_ds: to check DelConsecZeroBid_call(), ~_put()
 clear;clc;
-addpath('D:\Dropbox\GitHub\ambiguity_premium\data');
+addpath('E:\Dropbox\GitHub\ambiguity_premium\main_functions');
+addpath('E:\Dropbox\GitHub\ambiguity_premium\data\sample_data');
 % load('smpl_ds.mat');
 load('smplput.mat');
 load('smplcall.mat');
@@ -22,4 +23,6 @@ C_ask_ = C_ask_(idx_C_nonzeroBid);
 Kc = Kc(idx_C_nonzeroBid);
 %%
 
-rmpath('D:\Dropbox\GitHub\ambiguity_premium\data');
+rmpath('E:\Dropbox\GitHub\ambiguity_premium\main_functions');
+rmpath('E:\Dropbox\GitHub\ambiguity_premium\data\sample_data');
+

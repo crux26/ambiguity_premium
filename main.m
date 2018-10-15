@@ -1,4 +1,5 @@
 %% main(), main_bid(), main_ask() --> main2() --> Goto SAS.
+%% main() == main_mid()
 %% Goal: bid-VIX, ask-VIX construction
 %% VIX: near- (1st) and next-term (2nd) call/put options where 23D < TTM < 37D
 % including "standard" 3rd Friday expiration and "weekly" SPX options that expire every Friday,
@@ -10,9 +11,9 @@
 clear;clc;
 isDorm = false;
 if isDorm == true
-    drive='F:';
+    drive='E:';
 else
-    drive='D:';
+    drive='E:';
 end
 
 homeDirectory = sprintf('%s\\Dropbox\\GitHub\\ambiguity_premium', drive);
@@ -22,11 +23,13 @@ addpath(sprintf('%s\\main_functions', homeDirectory));
 
 OptionsData_genData_path = sprintf('%s\\Dropbox\\GitHub\\OptionsData\\data\\gen_data', drive);
 
-load(sprintf('%s\\raw_tfz_dly_ts2.mat', OptionsData_genData_path), 'table_');
-T_tfz_dly_ts2 = table_;
+load(sprintf('%s\\raw_tfz_dly_ts2.mat', OptionsData_genData_path), 'T_');
+T_tfz_dly_ts2 = T_;
 T_tfz_dly_ts2 = sortrows(T_tfz_dly_ts2, [2, 7], {'ascend', 'descend'});  % [2, 7]: CALDT, TDDURATN, respectively.
 
-load(sprintf('%s\\OpData_dly_2nd_BSIV_near30D_Trim.mat', genData_path));
+% Refer to white paper: it seems not to adjust irregular prices at tails.
+% load(sprintf('%s\\OpData_dly_2nd_BSIV_near30D_Trim.mat', genData_path));
+load(sprintf('%s\\OpData_dly_2nd_BSIV_near30D.mat', genData_path));
 
 %% Delete if isnan(tb_m3)
 % Below takes: 0.29s (LAB PC)
@@ -40,6 +43,19 @@ tic;
 idx_notNaN_P = find(~isnan(PutData.r));
 PutData = PutData(idx_notNaN_P, :);
 toc;
+
+%% problematic dates
+date_mid = [729202, 729953, 730758, 730926, 731171, 731444, 731598, 732053, 732235, 733276, 733367, 733549];
+date_ask = [729453, 729998, 730758, 731171, 735945];
+date_bid = [729202, 730758, 731171, 733600];
+date_problematic = union(union(date_mid, date_ask), date_bid);
+
+idx_date_C = ismember(CallData.date, date_problematic);
+CallData = CallData(~idx_date_C, :);
+idx_date_P = ismember(PutData.date, date_problematic);
+PutData = PutData(~idx_date_P, :);
+
+clear date_mid date_ask date_bid date_problematic;
 
 %% Use only the intersection of CallData & PutData.
 [date_, ~] = unique([CallData.date, CallData.exdate], 'rows');
@@ -87,7 +103,7 @@ idx_date__ = [idx_date__; size(PutData, 1)+1]; % unique() doesn't return the las
 idx_date_next = idx_date_(2:end)-1; idx_date__next = idx_date__(2:end)-1;
 idx_date_ = idx_date_(1:end-1); idx_date__ = idx_date__(1:end-1);
 
-%% 
+%%
 r_1st = zeros(length(date_), 1);
 r_2nd = zeros(length(date_), 1);
 
@@ -95,10 +111,11 @@ CallData_1st = [];
 PutData_1st = [];
 CallData_2nd = [];
 PutData_2nd = [];
+idx_problematic_1 = [];
 
 CT = '15:00:00';  % fix the Current Time.
 
-% Below takes: 184.8s or 3.07m (LAB PC)
+% Below takes: 7m (DORM)
 tic;
 for jj=1:length(date_)  % Note that length(date_)+1==length(ia_date_) now.
     try
@@ -134,9 +151,10 @@ for jj=1:length(date_)  % Note that length(date_)+1==length(ia_date_) now.
         PutData_2nd = [PutData_2nd; PutData_2nd_];
 
     catch
-        fprintf('%2f-th row is problematic', jj);
-        warning('Problem with the function or data. Check again.');
-        break;
+%         fprintf('1st loop: %2f-th row is problematic', jj);
+%         warning('Problem with the function or data. Check again.');
+%         break;
+        idx_problematic_1 = [idx_problematic_1; jj];
     end
 end
 toc;
@@ -164,8 +182,9 @@ idx_date_2nd__ = [idx_date_2nd__; size(PutData_2nd, 1)+1]; % unique() doesn't re
 idx_date_2nd_next = idx_date_2nd_(2:end)-1; idx_date_2nd__next = idx_date_2nd__(2:end)-1;
 idx_date_2nd_ = idx_date_2nd_(1:end-1); idx_date_2nd__ = idx_date_2nd__(1:end-1);
 
-%%
+%% idx_problematic_2: [1185, 1459]
 VarIX_1st = []; VarIX_2nd = [];
+idx_problematic_2 = [];
 
 % Below takes: 23.7s (LAB PC)
 tic;
@@ -188,13 +207,15 @@ for jj=1:length(date_)
         VarIX_2nd = [VarIX_2nd; VarIX_2nd_];
 
     catch
-        fprintf('%2f-th row is problematic', jj);
-        warning('Problem with the function or data. Check again.');
-        break;
+%         fprintf('2nd loop: %2f-th row is problematic', jj);
+%         warning('Problem with the function or data. Check again.');
+%         break;
+        idx_problematic_2 = [idx_problematic_2; jj];
     end
 end
 toc;
 
+%%
 VIX = VIX_30Davg(CT, VarIX_1st, VarIX_2nd);
 
 save(sprintf('%s\\VIX_gen', genData_path), 'VarIX_1st', 'VarIX_2nd', 'VIX');

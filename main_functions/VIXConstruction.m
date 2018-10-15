@@ -1,4 +1,5 @@
 function [T_VIX] = VIXConstruction(T_VIXrawVolCurve)
+% Correct: checked with VIX white paper's sample data
 date_ = unique(T_VIXrawVolCurve.date);
 exdate = unique(T_VIXrawVolCurve.exdate);
 TTM = unique(T_VIXrawVolCurve.TTM);

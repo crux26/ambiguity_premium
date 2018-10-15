@@ -2,9 +2,9 @@
 clear;clc;
 isDorm = false;
 if isDorm == true
-    drive='F:';
+    drive='E:';
 else
-    drive='D:';
+    drive='E:';
 end
 homeDirectory = sprintf('%s\\Dropbox\\GitHub\\ambiguity_premium', drive);
 genData_path = sprintf('%s\\data\\gen_data', homeDirectory);
@@ -13,7 +13,7 @@ addpath(sprintf('%s\\data\\codes\\functions', homeDirectory));
 
 OptionsData_genData_path = sprintf('%s\\Dropbox\\GitHub\\OptionsData\\data\\gen_data', drive);
 
-% Below takes: 19.6s (LAB PC)
+% Below takes: 3.4s (DORM)
 tic;
 load(sprintf('%s\\rawOpData_dly_2nd_BSIV.mat', OptionsData_genData_path));
 toc;
@@ -45,6 +45,12 @@ PutData = table(PutData(:,1), PutData(:,2), PutData(:,3), PutData(:,4), PutData(
 
 clear CallBidAsk CallIV CallVolDev symbol_C TTM_C PutBidAsk PutIV PutVolDev symbol_P TTM_P;
 
+%% VIX old white paper: discard DTM_CAL < 7D
+DTM_C = daysdif(CallData.date, CallData.exdate);
+DTM_P = daysdif(PutData.date, PutData.exdate);
+CallData = CallData(DTM_C >= 7, :);
+PutData = PutData(DTM_P >= 7, :);
+
 %%
 [date_, idx_date_] = unique(CallData(:,1));
 [date__, idx_date__] = unique(PutData(:,1));
@@ -71,11 +77,10 @@ idx_date_ = idx_date_(1:end-1);
 idx_date__ = idx_date__(1:end-1);
 
 %%
-
 CallData__ = [];
 PutData__ = [];
 
-% Below takes 314.5s or 5.2m (LAB PC. Do not use MEX; it's slower.)
+% Below takes 8m (LAB. Do not use MEX; it's slower.)
 tic;
 for jj=1:size(date_, 1)
     tmpIdx_C = idx_date_(jj):idx_date_next(jj) ;
@@ -90,7 +95,7 @@ toc;
 CallData = CallData__;
 PutData = PutData__;
 
-% Below takes: 9.9s (LAB PC)
+% Below takes: 5.7s (DORM)
 tic;
 save(sprintf('%s\\OpData_dly_2nd_BSIV_near30D.mat', genData_path), 'CallData', 'PutData');
 toc;

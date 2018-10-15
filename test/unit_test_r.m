@@ -1,4 +1,4 @@
-% unit_test_r
+%% unit_test_r
 
 % r_1st, r_2nd: bond-equivalent yields of the US T-bill maturing closest to the expiration dates of relevant SPX options
 addpath('D:\Dropbox\GitHub\ambiguity_premium\data');
