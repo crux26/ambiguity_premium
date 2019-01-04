@@ -6,17 +6,17 @@ exdate = unique(T_PutData.exdate);
 if length(date_) ~= 1 || length(exdate) ~= 1
     error('length(date_) ~= 1 || length(exdate) ~= 1.');
 end
-Kp = T_PutData.Kp;
-P_bid = T_PutData.P_bid;
-P_ask = T_PutData.P_ask;
+Kp = T_PutData.K;
+P_bid = T_PutData.Bid;
+P_ask = T_PutData.Ask;
 
-Kc = T_CallData.Kc;
-C_bid = T_CallData.C_bid;
-C_ask = T_CallData.C_ask;
+Kc = T_CallData.K;
+C_bid = T_CallData.Bid;
+C_ask = T_CallData.Ask;
 
 r = unique(T_CallData.r);
 TTM = unique(T_CallData.TTM);
-DTM_BUS = unique(T_CallData.DTM_BUS);
+DTM_BUS = unique(T_CallData.datedif_bus);
 isSTD = unique(T_CallData.isSTD);
 if length(r)~=1 || length(TTM)~=1 || length(DTM_BUS)~=1 || length(isSTD)~=1
     error('length(r)~=1 || length(TTM)~=1 || length(DTM_BUS)~=1 || length(isSTD)~=1.');
@@ -91,4 +91,4 @@ end
 T_out = table(date_*ones(size(K,1), 1), exdate*ones(size(K,1), 1),  K, OpPrice, ...
     fwd*ones(size(K,1), 1), r*ones(size(K,1), 1), ...
     TTM*ones(size(K,1), 1), DTM_BUS*ones(size(K,1), 1), isSTD*ones(size(K,1), 1), ...
-    'VariableNames', {'date', 'exdate', 'K', 'OpPrice', 'fwd', 'r', 'TTM', 'DTM_BUS', 'isSTD'});
+    'VariableNames', {'date', 'exdate', 'K', 'OpPrice', 'fwd', 'r', 'TTM', 'datedif_bus', 'isSTD'});
