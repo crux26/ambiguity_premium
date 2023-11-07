@@ -1,8 +1,10 @@
 function [T_CallData_, T_PutData_] = idNear30D_BSIV(T_CallData, T_PutData)
+%% Major change: (date, exdate) from datenum to datetime array
+% Hence, DTMs are not (exdate - date) anymore.
 % Extracts only 1 exdate if(exdate==30D) or 2 exdates closest to 30D.
 
-DTM_C = T_CallData.exdate - T_CallData.date;  % calendar day dif.
-DTM_P = T_PutData.exdate - T_PutData.date;
+DTM_C = daysdif(T_CallData.date, T_CallData.exdate);  % calendar day dif.
+DTM_P = daysdif(T_PutData.date, T_PutData.exdate);
 
 [~, idx_near30D_C] = min(abs(DTM_C - 30)); % length(idx_)==1 even if multiple minimum
 [~, idx_near30D_P] = min(abs(DTM_P - 30));
@@ -14,6 +16,7 @@ DTM_P = T_PutData.exdate - T_PutData.date;
 
 idxC_unique = find(vC_unique == DTM_C(idx_near30D_C)); % min_near30D_C ~= DTM_C(idx_near30D_C)
 idxP_unique = find(vP_unique == DTM_P(idx_near30D_P));
+
 %% See VIX old paper; discard DTM < 7D_Cal. Then, for instance, get 33D, 63D.
 % Reason for try-catch: on j==50, DTM=[2;37;65], j==51, DTM=[36;64] --> error on j==51.
 % try-catch removed: not supported in MEX.

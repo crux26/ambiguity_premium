@@ -78,7 +78,7 @@ date_intersect = intersect(intersect(date_, date__), date___);
 idx_C = ismember(CallData.date, date_intersect);
 idx_P = ismember(PutData.date, date_intersect);
 idx_tfz = ismember(T_tfz_dly_ts2.CALDT, date_intersect);
-CallData = CallData(idx_C,:); PutData = PutData(idx_P, :); T_tfz_dly_ts2 = T_tfz_dly_ts2(idx_tfz,:);
+CallData = CallData(idx_C,:); PutData = PutData(idx_P, :); T_tfz_dly_ts2 = T_tfz_dly_ts2(idx_tfz, :);
 
 %%
 [date_, idx_date_] = unique(CallData.date);
